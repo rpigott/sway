@@ -3,6 +3,7 @@
 #include "sway/desktop.h"
 #include "sway/input/cursor.h"
 #include "sway/input/seat.h"
+#include "sway/ipc-server.h"
 
 struct seatop_move_floating_event {
 	struct sway_container *con;
@@ -15,6 +16,7 @@ static void finalize_move(struct sway_seat *seat) {
 	// We "move" the container to its own location
 	// so it discovers its output again.
 	container_floating_move_to(e->con, e->con->x, e->con->y);
+	ipc_event_window(e->con, "move");
 
 	seatop_begin_default(seat);
 }
