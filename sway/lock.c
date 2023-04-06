@@ -7,7 +7,6 @@
 #include "sway/input/seat.h"
 #include "sway/output.h"
 #include "sway/server.h"
-#include "sway/surface.h"
 
 static void focus_surface(struct sway_session_lock *lock,
 		struct wlr_surface *focused) {

@@ -15,11 +15,9 @@ sway_sources = files(
 	'xdg_activation_v1.c',
 	'xdg_decoration.c',
 
-	'desktop/desktop.c',
 	'desktop/idle_inhibit_v1.c',
 	'desktop/layer_shell.c',
 	'desktop/output.c',
-	'desktop/surface.c',
 	'desktop/transaction.c',
 	'desktop/xdg_shell.c',
 	'desktop/launcher.c',
