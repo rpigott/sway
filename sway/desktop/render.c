@@ -1007,48 +1007,6 @@ void output_render(struct render_context *ctx) {
 		});
 	}
 
-	pixman_region32_t transformed_damage;
-	pixman_region32_init(&transformed_damage);
-	pixman_region32_copy(&transformed_damage, damage);
-	transform_output_damage(&transformed_damage, wlr_output);
-
-	if (server.session_lock.locked) {
-		struct wlr_render_color clear_color = {
-			.a = 1.0f
-		};
-		if (server.session_lock.lock == NULL) {
-			// abandoned lock -> red BG
-			clear_color.r = 1.f;
-		}
-
-		wlr_render_pass_add_rect(ctx->pass, &(struct wlr_render_rect_options){
-			.box = { .width = wlr_output->width, .height = wlr_output->height },
-			.color = clear_color,
-			.clip = &transformed_damage,
-		});
-
-		if (server.session_lock.lock != NULL) {
-			struct render_data data = {
-				.alpha = 1.0f,
-				.ctx = ctx,
-			};
-
-			struct wlr_session_lock_surface_v1 *lock_surface;
-			wl_list_for_each(lock_surface, &server.session_lock.lock->surfaces, link) {
-				if (lock_surface->output != wlr_output) {
-					continue;
-				}
-				if (!lock_surface->surface->mapped) {
-					continue;
-				}
-
-				output_surface_for_each_surface(output, lock_surface->surface,
-					0.0, 0.0, render_surface_iterator, &data);
-			}
-		}
-		goto renderer_end;
-	}
-
 	if (output_has_opaque_overlay_layer_surface(output)) {
 		goto render_overlay;
 	}
@@ -1057,7 +1015,6 @@ void output_render(struct render_context *ctx) {
 		wlr_render_pass_add_rect(ctx->pass, &(struct wlr_render_rect_options){
 			.box = { .width = wlr_output->width, .height = wlr_output->height },
 			.color = { .r = 0, .g = 0, .b = 0, .a = 1 },
-			.clip = &transformed_damage,
 		});
 
 		if (fullscreen_con->view) {
@@ -1085,7 +1042,6 @@ void output_render(struct render_context *ctx) {
 		wlr_render_pass_add_rect(ctx->pass, &(struct wlr_render_rect_options){
 			.box = { .width = wlr_output->width, .height = wlr_output->height },
 			.color = { .r = 0.25f, .g = 0.25f, .b = 0.25f, .a = 1 },
-			.clip = &transformed_damage,
 		});
 
 		render_layer_toplevel(ctx,
@@ -1123,7 +1079,5 @@ render_overlay:
 	render_layer_popups(ctx,
 		&output->shell_layers[ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY]);
 
-renderer_end:
-	pixman_region32_fini(&transformed_damage);
 	wlr_output_add_software_cursors_to_render_pass(wlr_output, ctx->pass, damage);
 }

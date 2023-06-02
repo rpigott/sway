@@ -273,20 +273,17 @@ static void for_each_surface_container_iterator(struct sway_container *con,
 
 static void output_for_each_surface(struct sway_output *output,
 		sway_surface_iterator_func_t iterator, void *user_data) {
-	if (server.session_lock.locked) {
-		if (server.session_lock.lock == NULL) {
-			return;
-		}
-		struct wlr_session_lock_surface_v1 *lock_surface;
-		wl_list_for_each(lock_surface, &server.session_lock.lock->surfaces, link) {
-			if (lock_surface->output != output->wlr_output) {
+	if (server.session_lock.lock) {
+		struct sway_session_lock_output *lock_output;
+		wl_list_for_each(lock_output, &server.session_lock.lock->outputs, link) {
+			if (lock_output->output != output) {
 				continue;
 			}
-			if (!lock_surface->surface->mapped) {
+			if (!lock_output->surface->surface->mapped) {
 				continue;
 			}
 
-			output_surface_for_each_surface(output, lock_surface->surface,
+			output_surface_for_each_surface(output, lock_output->surface->surface,
 				0.0, 0.0, iterator, user_data);
 		}
 		return;
@@ -902,6 +899,10 @@ void handle_new_output(struct wl_listener *listener, void *data) {
 
 	output->repaint_timer = wl_event_loop_add_timer(server->wl_event_loop,
 		output_repaint_timer_handler, output);
+
+	if (server->session_lock.lock) {
+		sway_session_lock_add_output(server->session_lock.lock, output);
+	}
 
 	struct output_config *oc = find_output_config(output);
 	apply_output_config(oc, output);

@@ -25,6 +25,7 @@
 #include "sway/layers.h"
 #include "sway/output.h"
 #include "sway/scene_descriptor.h"
+#include "sway/server.h"
 #include "sway/tree/container.h"
 #include "sway/tree/root.h"
 #include "sway/tree/view.h"
@@ -95,17 +96,13 @@ struct sway_node *node_at_coords(
 	double ox = lx, oy = ly;
 	wlr_output_layout_output_coords(root->output_layout, wlr_output, &ox, &oy);
 
-	if (server.session_lock.locked) {
-		if (server.session_lock.lock == NULL) {
-			return NULL;
-		}
-		struct wlr_session_lock_surface_v1 *lock_surf;
-		wl_list_for_each(lock_surf, &server.session_lock.lock->surfaces, link) {
-			if (lock_surf->output != wlr_output) {
+	if (server.session_lock.lock) {
+		struct sway_session_lock_output *lock_output;
+		wl_list_for_each(lock_output, &server.session_lock.lock->outputs, link) {
+			if (lock_output->output->wlr_output != wlr_output) {
 				continue;
 			}
-
-			*surface = wlr_surface_surface_at(lock_surf->surface, ox, oy, sx, sy);
+			*surface = wlr_surface_surface_at(lock_output->surface->surface, ox, oy, sx, sy);
 			if (*surface != NULL) {
 				return NULL;
 			}
