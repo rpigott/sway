@@ -67,9 +67,6 @@ struct sway_root *root_create(struct wl_display *wl_display) {
 
 	root->output_layout = wlr_output_layout_create(wl_display);
 	wl_list_init(&root->all_outputs);
-#if HAVE_XWAYLAND
-	wl_list_init(&root->xwayland_unmanaged);
-#endif
 	wl_signal_init(&root->events.new_node);
 	root->outputs = create_list();
 	root->non_desktop_outputs = create_list();
