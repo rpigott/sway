@@ -200,80 +200,6 @@ void output_unmanaged_for_each_surface(struct sway_output *output,
 }
 #endif
 
-static void for_each_surface_container_iterator(struct sway_container *con,
-		void *_data) {
-	if (!con->view || !view_is_visible(con->view)) {
-		return;
-	}
-
-	struct surface_iterator_data *data = _data;
-	output_view_for_each_surface(data->output, con->view,
-		data->user_iterator, data->user_data);
-}
-
-static void output_for_each_surface(struct sway_output *output,
-		sway_surface_iterator_func_t iterator, void *user_data) {
-	if (server.session_lock.lock) {
-		struct sway_session_lock_output *lock_output;
-		wl_list_for_each(lock_output, &server.session_lock.lock->outputs, link) {
-			if (lock_output->output != output) {
-				continue;
-			}
-			if (!lock_output->surface->surface->mapped) {
-				continue;
-			}
-
-			output_surface_for_each_surface(output, lock_output->surface->surface,
-				0.0, 0.0, iterator, user_data);
-		}
-		return;
-	}
-
-	struct surface_iterator_data data = {
-		.user_iterator = iterator,
-		.user_data = user_data,
-		.output = output,
-		.view = NULL,
-	};
-
-	struct sway_workspace *workspace = output_get_active_workspace(output);
-	struct sway_container *fullscreen_con = root->fullscreen_global;
-	if (!fullscreen_con) {
-		if (!workspace) {
-			return;
-		}
-		fullscreen_con = workspace->current.fullscreen;
-	}
-	if (fullscreen_con) {
-		for_each_surface_container_iterator(fullscreen_con, &data);
-		container_for_each_child(fullscreen_con,
-			for_each_surface_container_iterator, &data);
-
-		// TODO: Show transient containers for fullscreen global
-		if (fullscreen_con == workspace->current.fullscreen) {
-			for (int i = 0; i < workspace->current.floating->length; ++i) {
-				struct sway_container *floater =
-					workspace->current.floating->items[i];
-				if (container_is_transient_for(floater, fullscreen_con)) {
-					for_each_surface_container_iterator(floater, &data);
-				}
-			}
-		}
-#if HAVE_XWAYLAND
-		output_unmanaged_for_each_surface(output, &root->xwayland_unmanaged,
-			iterator, user_data);
-#endif
-	} else {
-		workspace_for_each_container(workspace,
-			for_each_surface_container_iterator, &data);
-
-#if HAVE_XWAYLAND
-		output_unmanaged_for_each_surface(output, &root->xwayland_unmanaged,
-			iterator, user_data);
-#endif
-	}
-}
-
 static int scale_length(int length, int offset, float scale) {
 	return roundf((offset + length) * scale) - roundf(offset * scale);
 }
@@ -655,28 +581,12 @@ static void handle_destroy(struct wl_listener *listener, void *data) {
 	update_output_manager_config(server);
 }
 
-static void update_textures(struct sway_container *con, void *data) {
-	container_update_title_textures(con);
-	container_update_marks_textures(con);
-}
-
-static void update_output_scale_iterator(struct sway_output *output,
-		struct sway_view *view, struct wlr_surface *surface,
-		struct wlr_box *box, void *user_data) {
-	surface_update_outputs(surface);
-}
-
 static void handle_commit(struct wl_listener *listener, void *data) {
 	struct sway_output *output = wl_container_of(listener, output, commit);
 	struct wlr_output_event_commit *event = data;
 
 	if (!output->enabled) {
 		return;
-	}
-
-	if (event->state->committed & WLR_OUTPUT_STATE_SCALE) {
-		output_for_each_container(output, update_textures, NULL);
-		output_for_each_surface(output, update_output_scale_iterator, NULL);
 	}
 
 	if (event->state->committed & (
