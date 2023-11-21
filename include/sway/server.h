@@ -27,26 +27,6 @@
 #endif
 
 struct sway_transaction;
-
-struct sway_session_lock_output {
-	struct wlr_scene_tree *tree;
-	struct wlr_scene_rect *background;
-	struct sway_session_lock *lock;
-
-	struct sway_output *output;
-
-	struct wl_list link; // sway_session_lock::outputs
-
-	struct wl_listener destroy;
-	struct wl_listener commit;
-
-	struct wlr_session_lock_surface_v1 *surface;
-
-	// invalid if surface is NULL
-	struct wl_listener surface_destroy;
-	struct wl_listener surface_map;
-};
-
 struct sway_session_lock {
 	struct wlr_session_lock_v1 *lock;
 	struct wlr_surface *focused;

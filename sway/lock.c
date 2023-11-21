@@ -8,6 +8,25 @@
 #include "sway/output.h"
 #include "sway/server.h"
 
+struct sway_session_lock_output {
+	struct wlr_scene_tree *tree;
+	struct wlr_scene_rect *background;
+	struct sway_session_lock *lock;
+
+	struct sway_output *output;
+
+	struct wl_list link; // sway_session_lock::outputs
+
+	struct wl_listener destroy;
+	struct wl_listener commit;
+
+	struct wlr_session_lock_surface_v1 *surface;
+
+	// invalid if surface is NULL
+	struct wl_listener surface_destroy;
+	struct wl_listener surface_map;
+};
+
 static void focus_surface(struct sway_session_lock *lock,
 		struct wlr_surface *focused) {
 	lock->focused = focused;
